@@ -10,6 +10,8 @@ import uvicorn
 
 # ✅ Initialize FastAPI app
 app = FastAPI()
+print(f"✅ ENV: PORT={os.environ.get('PORT')}")
+print(f"✅ ENV: COQUI_TOS_AGREED={os.environ.get('COQUI_TOS_AGREED')}")
 
 # ✅ Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -37,82 +39,37 @@ custom_speaker_wav = os.path.join(os.getcwd(), "sample.wav")
 if not os.path.isfile(custom_speaker_wav):
     raise FileNotFoundError(f"❌ Custom speaker WAV file not found: {custom_speaker_wav}")
 
-# ✅ HTML Template for Home Page
-html_template = """
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Text-to-Speech (TTS)</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body class="bg-light">
-
-    <div class="container mt-5">
-        <h1 class="mb-4">Text-to-Speech (TTS) Generator 🎤</h1>
-
-        <form method="post" action="/generate" enctype="application/x-www-form-urlencoded">
-            <div class="mb-3">
-                <label for="text" class="form-label">Enter your story:</label>
-                <textarea class="form-control" id="text" name="text" rows="5" required>खुशहाल गाँव की कहानी...</textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="language" class="form-label">Select Language:</label>
-                <select class="form-select" id="language" name="language" required>
-                    <option value="hi" selected>Hindi</option>
-                    <option value="en">English</option>
-                    <option value="es">Spanish</option>
-                    <option value="fr">French</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Generate Speech</button>
-        </form>
-
-    </div>
-
-</body>
-
-</html>
-"""
-
-# ✅ HTML Template for Download Page
-download_template = """
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Download Speech</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body class="bg-light">
-
-    <div class="container mt-5">
-        <h1 class="mb-4">🎧 Your Speech is Ready!</h1>
-        <a href="/download/{filename}" class="btn btn-success">Download Speech</a>
-        <a href="/" class="btn btn-secondary">Generate Again</a>
-    </div>
-
-</body>
-
-</html>
-"""
+# ✅ Health check (for Render port detection)
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 # ✅ Homepage - Render HTML Form
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return html_template
+    return """
+    <h1>Text-to-Speech Generator 🎤</h1>
+    <form method="post" action="/generate">
+        <label>Enter Text:</label>
+        <textarea name="text" rows="4" cols="50">खुशहाल गाँव की कहानी...</textarea>
+        <br>
+        <label>Select Language:</label>
+        <select name="language">
+            <option value="hi" selected>Hindi</option>
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+        </select>
+        <br>
+        <button type="submit">Generate Speech</button>
+    </form>
+    """
 
 # ✅ Handle form submission and speech generation
 @app.post("/generate")
 async def generate_speech(text: str = Form(...), language: str = Form(...)):
     try:
-        # Supported languages (extend if needed)
+        # Supported languages
         supported_languages = ["hi", "en", "es", "fr"]
         if language not in supported_languages:
             return HTMLResponse(f"<h3>Error: Unsupported language '{language}'</h3>")
@@ -122,22 +79,15 @@ async def generate_speech(text: str = Form(...), language: str = Form(...)):
 
         print(f"🎙️ Generating speech in '{language}'...")
 
-        # Generate speech (without the unsupported 'stream' argument)
+        # Generate speech
         tts.tts_to_file(text=text, speaker_wav=custom_speaker_wav, language=language, file_path=output_path)
 
         print("✅ Speech generation completed!")
-
-        # Redirect to download page with the filename
-        return RedirectResponse(url=f"/success?filename=output.wav", status_code=303)
+        return RedirectResponse(url=f"/download/output.wav", status_code=303)
 
     except Exception as e:
         print(f"❌ Error: {e}")
         return HTMLResponse(f"<h3>Error: {e}</h3>")
-
-# ✅ Success page with download link
-@app.get("/success", response_class=HTMLResponse)
-async def success_page(filename: str):
-    return download_template.replace("{filename}", filename)
 
 # ✅ Serve output files for download
 @app.get("/download/{filename}")
@@ -147,6 +97,8 @@ async def download_file(filename: str):
         return FileResponse(file_path, media_type='audio/wav', filename=filename)
     return HTMLResponse("<h3>File not found!</h3>")
 
+# ✅ Ensure Dynamic Port Binding
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # Use PORT from environment, default to 8000
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    port = int(os.environ.get("PORT", "8000"))  # Dynamic port from Render
+    print(f"🚀 Starting FastAPI on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
