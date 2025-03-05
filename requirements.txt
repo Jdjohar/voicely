@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-TTS
-torch
-starlette
-numpy
-python-multipart
+fastapi = 0.115.8
+uvicorn = 0.34.0
+TTS =  0.22.0
+torch =  2.5.1
+starlette = 0.45.3
+numpy =  1.22.0
+python-multipart = 0.0.20
