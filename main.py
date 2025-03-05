@@ -146,3 +146,7 @@ async def download_file(filename: str):
     if os.path.isfile(file_path):
         return FileResponse(file_path, media_type='audio/wav', filename=filename)
     return HTMLResponse("<h3>File not found!</h3>")
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))  # Use PORT from environment, default to 8000
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
