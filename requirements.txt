@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+TTS
+torch
+starlette
+numpy
+python-multipart
