@@ -96,12 +96,6 @@ async def download_file(filename: str):
     if os.path.isfile(file_path):
         return FileResponse(file_path, media_type='audio/wav', filename=filename)
     return HTMLResponse("<h3>File not found!</h3>")
-# ✅ Log when server is ready
-@app.on_event("startup")
-async def startup_event():
-    port = os.environ.get("PORT", "8000")
-    print(f"✅ FastAPI server started! Access it at: http://localhost:{port}")
-
 # ✅ Ensure Dynamic Port Binding
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))  # Dynamic port from Render
